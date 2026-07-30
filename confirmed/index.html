@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ToolAtlas — You're all set</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0 auto; padding: 56px 20px 80px; max-width: 32rem;
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fff; color: #111; text-align: center;
+  }
+  @media (prefers-color-scheme: dark) { body { background: #000; color: #eee; } }
+  h1 { font-size: 28px; line-height: 1.25; letter-spacing: -0.5px; margin: 0 0 12px; }
+  p { margin: 0 0 14px; }
+  .note { color: #767676; font-size: 14px; }
+  @media (prefers-color-scheme: dark) { .note { color: #8F8F8F; } }
+  .mark { font-size: 13px; letter-spacing: 2px; color: #767676; margin: 0 0 28px; }
+  a.button {
+    display: inline-block; margin-top: 18px; padding: 14px 26px;
+    border: 1px solid currentColor; border-radius: 2px;
+    text-decoration: none; color: inherit; font-weight: 600;
+  }
+  .bad { color: #B3261E; }
+  @media (prefers-color-scheme: dark) { .bad { color: #F2B8B5; } }
+  hr { border: 0; border-top: 1px solid #8884; margin: 40px 0 20px; }
+</style>
+</head>
+<body>
+
+<p class="mark">TOOLATLAS</p>
+<h1 id="title">Confirming…</h1>
+<p id="body">One moment.</p>
+<div id="cta"></div>
+
+<hr>
+<p class="note">
+  Trouble? Open ToolAtlas and sign in with the email and password you just used.
+  <br><a href="../">Privacy policy</a>
+</p>
+
+<script>
+/*
+ * Supabase appends the result of an auth email to the URL FRAGMENT, e.g.
+ *   #access_token=…&refresh_token=…&type=signup
+ * or, when the link has expired,
+ *   #error=access_denied&error_code=otp_expired&error_description=…
+ *
+ * The verification itself already happened server-side before the redirect, so
+ * this page has nothing to do but explain what just occurred. It deliberately
+ * does NOT use, store, or transmit the tokens.
+ *
+ * It does strip them from the address bar immediately. A fragment carrying a
+ * live access token would otherwise sit in browser history and in whatever the
+ * user pastes when asking for help — which is exactly how one leaked during
+ * development.
+ */
+(function () {
+  var raw = window.location.hash.replace(/^#/, '');
+  var p = new URLSearchParams(raw);
+
+  var type = p.get('type') || '';
+  var err = p.get('error') || p.get('error_code');
+  var errDesc = p.get('error_description');
+  var hadToken = !!p.get('access_token');
+
+  // Drop the fragment before anything else can read it.
+  if (raw) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+  }
+
+  var COPY = {
+    signup:    ['Email confirmed', 'Your ToolAtlas account is ready. Head back to the app and sign in.'],
+    magiclink: ['You’re signed in', 'You can return to ToolAtlas now.'],
+    recovery:  ['Password reset approved', 'Return to ToolAtlas and set a new password.'],
+    invite:    ['Invitation accepted', 'Head back to the app and sign in.'],
+    email_change: ['Email address updated', 'Your new address is confirmed. Sign in with it in ToolAtlas.']
+  };
+
+  var title = document.getElementById('title');
+  var body = document.getElementById('body');
+  var cta = document.getElementById('cta');
+
+  if (err) {
+    title.textContent = 'That link didn’t work';
+    title.className = 'bad';
+    body.textContent = /expired/i.test(err + ' ' + (errDesc || ''))
+      ? 'The link has expired. Request a new one from the app — they are only valid for a short time.'
+      : 'The link is invalid or has already been used. Request a new one from the app.';
+  } else {
+    var c = COPY[type] || (hadToken
+      ? ['You’re all set', 'Head back to ToolAtlas to carry on.']
+      : ['You’re all set', 'If you were confirming an email address, it is done. Head back to ToolAtlas.']);
+    title.textContent = c[0];
+    body.textContent = c[1];
+    cta.innerHTML = '<a class="button" href="toolbox://">Open ToolAtlas</a>';
+  }
+})();
+</script>
+
+</body>
+</html>
