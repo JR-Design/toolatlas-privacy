@@ -49,13 +49,18 @@
  *   #error=access_denied&error_code=otp_expired&error_description=…
  *
  * The verification itself already happened server-side before the redirect, so
- * this page has nothing to do but explain what just occurred. It deliberately
- * does NOT use, store, or transmit the tokens.
+ * this page's job is to hand that session to the app and explain what happened.
  *
- * It does strip them from the address bar immediately. A fragment carrying a
- * live access token would otherwise sit in browser history and in whatever the
- * user pastes when asking for help — which is exactly how one leaked during
- * development.
+ * This page is now the FALLBACK, not the main path: the app sets
+ * `emailRedirectTo` to its own deep link, so a link opened on a phone with
+ * ToolAtlas installed never gets here. It still matters for the email opened
+ * on a desktop, and for anyone whose mail client strips custom schemes.
+ *
+ * The fragment is forwarded to the app rather than used here — this page has
+ * no account of its own to sign into — and then stripped from the address bar
+ * immediately. A fragment carrying a live access token would otherwise sit in
+ * browser history and in whatever the user pastes when asking for help, which
+ * is exactly how one leaked during development.
  */
 (function () {
   var raw = window.location.hash.replace(/^#/, '');
@@ -96,19 +101,25 @@
     title.textContent = c[0];
     body.textContent = c[1];
     /*
-     * Deep-link to Profile, not to the app's front door.
+     * Hand the session to the app.
      *
-     * A bare `toolbox://` opens wherever the app happens to be, so someone who
-     * has just confirmed an email lands on Home with nothing to tell them what
-     * to do next, and has to go hunting for the sign-in form. Profile is where
-     * that form lives.
+     * `auth/callback` reads the fragment and calls setSession, so tapping this
+     * on the phone that has ToolAtlas installed signs you in — no typing the
+     * password you just proved you knew. Without a token to pass (an email
+     * confirmed on a desktop, say) it still opens Profile, where the sign-in
+     * form is, rather than Home.
      *
-     * This still asks the user to type their password once. Signing them in
-     * outright means the app parsing the tokens out of this URL fragment,
-     * which needs `emailRedirectTo` and a callback route in the app — not
-     * shipped yet, so this is the honest middle: land them on the right screen.
+     * The fragment is carried, not copied into a query string: a token in a
+     * query string is a token in server logs.
      */
-    cta.innerHTML = '<a class="button" href="toolbox:///profile">Open ToolAtlas</a>';
+    var target = hadToken
+      ? 'toolbox:///auth/callback#' + raw
+      : 'toolbox:///profile';
+    var link = document.createElement('a');
+    link.className = 'button';
+    link.href = target;
+    link.textContent = 'Open ToolAtlas';
+    cta.appendChild(link);
   }
 })();
 </script>
