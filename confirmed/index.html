@@ -95,7 +95,20 @@
       : ['You’re all set', 'If you were confirming an email address, it is done. Head back to ToolAtlas.']);
     title.textContent = c[0];
     body.textContent = c[1];
-    cta.innerHTML = '<a class="button" href="toolbox://">Open ToolAtlas</a>';
+    /*
+     * Deep-link to Profile, not to the app's front door.
+     *
+     * A bare `toolbox://` opens wherever the app happens to be, so someone who
+     * has just confirmed an email lands on Home with nothing to tell them what
+     * to do next, and has to go hunting for the sign-in form. Profile is where
+     * that form lives.
+     *
+     * This still asks the user to type their password once. Signing them in
+     * outright means the app parsing the tokens out of this URL fragment,
+     * which needs `emailRedirectTo` and a callback route in the app — not
+     * shipped yet, so this is the honest middle: land them on the right screen.
+     */
+    cta.innerHTML = '<a class="button" href="toolbox:///profile">Open ToolAtlas</a>';
   }
 })();
 </script>
